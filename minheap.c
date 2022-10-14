@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct minheap {
+typedef struct {
 	int capacity;
 	int size;
 	int *arr;
@@ -30,24 +30,27 @@ void destroy_minheap(minheap* aa){
 void minheap_insert(minheap *aa) {
 	
 	if(aa->size == aa->capacity){
-		printf("Heap is at capacity (%d) Unable to insert element.\n", aa->capacity);
+		printf("Heap is at capacity (%d). Unable to insert element.\n", aa->capacity);
 		return;
 	}
+	
 	if(aa == NULL){
 		printf("Pointer to heap is NULL.\n");
 		return;
 	}
+	
 	int tmp, i = aa->size+1;
 	int *a = aa->arr;
 	tmp = a[i];
 
 	// loop until leaf is no longer less than its parent or until root node is reached
-	while((i>1) && (tmp<a[i/2])){
+	while((i>1) && (tmp < a[i/2])){
 		a[i] = a[i/2]; // overwrite leaf with parent value
 		i = i/2; // update index to parent of leaf
 	}
 	a[i] = tmp; // insert added element 
 
+	// increment heap size
 	aa->size++;
 }
 
@@ -88,38 +91,49 @@ int minheap_delete(minheap *aa) {
 			break; // break if parent was not greater than children
 		}
 	}
+
+	// decrement heap size
 	aa->size--;
+
 	return val;
+}
+
+void minheap_sort(minheap *aa){
+
+	for (int i = aa->size; i > 0; i--){
+		minheap_delete(aa);
+	}
+}
+
+void minheap_print_array(minheap *aa){
+	
+	for (int i = 1; i <= aa->capacity; i++){
+		printf("%d\n", aa->arr[i]);
+	}
 }
 
 int main(int argc, char** argv){
 
-	int arr[] = {0,10,20,30,25,5,40,35,18,9,98,7,4};
+	int arr[] = {0,10,20,30,25,5,40,35,18,9,98,7,4,230,891,17};
 	int val = 0;
 	int size = sizeof(arr)/sizeof(arr[0]);
 
 	minheap* heap = create_minheap(size-1, arr);
 
+	printf("------- Initial array -------\n");
+	minheap_print_array(heap);
 	for (int i = 1; i <= size-1; i++){
 		minheap_insert(heap);
-		printf("heap size: %d\n", heap->size);
 	}
 	printf("-------\n");
 	printf("After heap creation:\n");
 	for(int i = 1; i <= size-1; i++){
 		printf("%d\n", heap->arr[i]);
 	}
-	printf("-------\n");
-	
-	for (int i = size-1; i > 0; i--){
-		val = minheap_delete(heap);
-		printf("deleted %d, new heap size: %d\n", val, heap->size);
-		for(int j = 1; j <= size-1; j++){
-			printf("%d\n", heap->arr[j]);
-		}
-		printf("-------\n");
-	}
-	
+
+	minheap_sort(heap);
+	printf("------- After heap sort -------\n");
+	minheap_print_array(heap);
 
 	free(heap);
 
