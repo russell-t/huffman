@@ -84,15 +84,19 @@ void destroy_minheap(minheap* aa){
 }
 
 
-node minheap_delete(minheap *aa) {
+node* minheap_delete(minheap *aa) {
 
 	// remove root, store last element in root
-	node tmp, val;
+	node tmp;
+	node *val = malloc(sizeof(node));
+	if(val == NULL){
+		return NULL;
+	}
 	node *a = aa->arr;
 	int  i, j;
 	int n = aa->size;
 
-	val = a[1]; // remember soon to be deleted root
+	*val = a[1]; // remember soon to be deleted root
 	a[1] = a[n]; // set root to last value
 
 	//a[n] = val; // store deleted value at index beyond heap 
@@ -150,16 +154,35 @@ int main(int argc, char** argv){
 	}
 	printf("------- After heap creation -------\n");
 	minheap_print(heap);
-	printf("------- After two values deleted -------\n");
+
+	// Create Huffman tree
+	node *huffmanTree[100];	
+	node *a, *b;
+	int i = 0;
+	while (heap->size > 1) {
+		// two smallest nodes
+		huffmanTree[2*i] = minheap_delete(heap);
+		huffmanTree[2*i+1] = minheap_delete(heap);
 	
-	for (int i = 0; i < 5; i++) {
-		node a = minheap_delete(heap);
-		node b = minheap_delete(heap);
-		node c = (node){a.freq+b.freq, '$', NULL, &a, &b};
+		// sum of the two nodes
+		node c = (node){huffmanTree[2*i]->freq + huffmanTree[2*i+1]->freq, '$', NULL, 
+							huffmanTree[2*i], huffmanTree[2*i+1]};
 		minheap_insert(heap, c);
+		i++;
 	}
-	printf("size of heap: %d\n", heap->size);
-	minheap_print(heap);
+	// root node
+	huffmanTree[2*i] = minheap_delete(heap);
+	int numNodes = i;
+
+	printf("------- Huffman Tree nodes -------\n");
+	for (int i = 0; i <= 10; i++){
+		printf("addr: %x freq:%d char:%c left:%x right:%x\n", huffmanTree[i], huffmanTree[i]->freq, 
+			huffmanTree[i]->data, huffmanTree[i]->left, huffmanTree[i]->right);
+	} 
+
+	for (int i = 0; i < numNodes; i++){
+		free(huffmanTree[i]);
+	}
 
 	free(heap);
 
