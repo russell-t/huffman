@@ -1,33 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct {
+typedef struct node node;
+
+struct node {
+	int freq;
+	char data;
+	char* code;
+
+	node* left;
+	node* right;
+};
+
+typedef struct minheap {
 	int capacity;
 	int size;
-	int *arr;
+	node *arr;
 } minheap;
-
-minheap* create_minheap(int capacity, int *arr){
-
-	minheap* mh = (minheap *)malloc(sizeof(minheap));
-	if(mh == NULL){
-		return NULL;
-	}
-
-	mh->size = 0;
-	mh->capacity = capacity;
-	mh->arr = arr;
-
-	return mh;
-}
-
-void destroy_minheap(minheap* aa){
-	free(aa);
-}
 
 // Insert element as last array element
 // n is index of element to be inserted
-void minheap_insert(minheap *aa) {
+void minheap_insert(minheap *aa, node bb) {
 	
 	if(aa->size == aa->capacity){
 		printf("Heap is at capacity (%d). Unable to insert element.\n", aa->capacity);
@@ -39,12 +32,14 @@ void minheap_insert(minheap *aa) {
 		return;
 	}
 	
-	int tmp, i = aa->size+1;
-	int *a = aa->arr;
+	int i = aa->size+1;
+	node tmp;
+	node *a = aa->arr;
+	a[i] = bb; 
 	tmp = a[i];
 
 	// loop until leaf is no longer less than its parent or until root node is reached
-	while((i>1) && (tmp < a[i/2])){
+	while((i>1) && (tmp.freq < a[i/2].freq)){
 		a[i] = a[i/2]; // overwrite leaf with parent value
 		i = i/2; // update index to parent of leaf
 	}
@@ -54,17 +49,53 @@ void minheap_insert(minheap *aa) {
 	aa->size++;
 }
 
-int minheap_delete(minheap *aa) {
+minheap* create_minheap(int capacity, int *freq, char *data){
+
+	minheap* aa = (minheap *)malloc(sizeof(minheap));
+	if(aa == NULL){
+		return NULL;
+	}
+	aa->arr = (node *)malloc(sizeof(node) * (capacity+1));
+	if(aa->arr == NULL){
+		return NULL;
+	}	
+
+	// set initial size and max capacity
+	aa->size = 0;
+	aa->capacity = capacity;
+
+	// initialize nodes
+	for (int i = 1; i <= capacity; i++){
+		node h = (node){freq[i], data[i], NULL, NULL, NULL};	
+		minheap_insert(aa, h);
+	}
+
+	return aa;
+}
+
+void destroy_minheap(minheap* aa){
+
+	if(aa->arr != NULL){
+		free(aa->arr);
+	}
+	if(aa != NULL){
+		free(aa);
+	}
+}
+
+
+node minheap_delete(minheap *aa) {
 
 	// remove root, store last element in root
-	int val, i, j, tmp;
-	int *a = aa->arr;
+	node tmp, val;
+	node *a = aa->arr;
+	int  i, j;
 	int n = aa->size;
 
 	val = a[1]; // remember soon to be deleted root
 	a[1] = a[n]; // set root to last value
 
-	a[n] = val; // store deleted value at index beyond heap 
+	//a[n] = val; // store deleted value at index beyond heap 
 
 	i = 1;
 	j = 2*i;
@@ -72,12 +103,12 @@ int minheap_delete(minheap *aa) {
 
 		// if right child is less than left child, update index of child
 		// parent must actually have right leaf
-		if((a[j+1] < a[j]) && (j + 1 < n)) {
+		if((a[j+1].freq < a[j].freq) && (j + 1 < n)) {
 			j++;
 		}
 
 		// check if child is less than parent
-		if(a[i] > a[j]) {
+		if(a[i].freq > a[j].freq) {
 
 			// swap values
 			tmp = a[i];
@@ -98,42 +129,37 @@ int minheap_delete(minheap *aa) {
 	return val;
 }
 
-void minheap_sort(minheap *aa){
-
-	for (int i = aa->size; i > 0; i--){
-		minheap_delete(aa);
-	}
-}
-
-void minheap_print_array(minheap *aa){
+void minheap_print(minheap *aa){
 	
-	for (int i = 1; i <= aa->capacity; i++){
-		printf("%d\n", aa->arr[i]);
+	for (int i = 1; i <= aa->size; i++){
+		printf("%d %c\n", aa->arr[i].freq, aa->arr[i].data);
 	}
 }
 
 int main(int argc, char** argv){
 
-	int arr[] = {0,10,20,30,25,5,40,35,18,9,98,7,4,230,891,17};
-	int val = 0;
-	int size = sizeof(arr)/sizeof(arr[0]);
+	int freq[] = {0,5,9,12,13,16,45};
+	char data[] = {'0','a','b','c','d','e','f'};
+	int size = sizeof(freq)/sizeof(freq[0]);
 
-	minheap* heap = create_minheap(size-1, arr);
+	minheap* heap = create_minheap(size-1, freq, data);
 
 	printf("------- Initial array -------\n");
-	minheap_print_array(heap);
 	for (int i = 1; i <= size-1; i++){
-		minheap_insert(heap);
+		printf("%d %c\n", freq[i], data[i]);
 	}
-	printf("-------\n");
-	printf("After heap creation:\n");
-	for(int i = 1; i <= size-1; i++){
-		printf("%d\n", heap->arr[i]);
+	printf("------- After heap creation -------\n");
+	minheap_print(heap);
+	printf("------- After two values deleted -------\n");
+	
+	for (int i = 0; i < 5; i++) {
+		node a = minheap_delete(heap);
+		node b = minheap_delete(heap);
+		node c = (node){a.freq+b.freq, '$', NULL, &a, &b};
+		minheap_insert(heap, c);
 	}
-
-	minheap_sort(heap);
-	printf("------- After heap sort -------\n");
-	minheap_print_array(heap);
+	printf("size of heap: %d\n", heap->size);
+	minheap_print(heap);
 
 	free(heap);
 
