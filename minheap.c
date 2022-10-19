@@ -2,12 +2,20 @@
 #include <stdlib.h>
 
 typedef struct node node;
+typedef unsigned char byte;
+
+typedef struct codeword {
+	int nbits;
+	int nbytes;
+	byte bytes[10];
+} codeword;
 
 struct node {
 	int freq;
 	char data;
-	char *code;
+	codeword cw;
 
+	node* parent;
 	node* left;
 	node* right;
 };
@@ -25,16 +33,16 @@ typedef struct huffmanTree {
 
 // Insert element as last array element
 // n is index of element to be inserted
-void minheap_insert(minheap *aa, node bb) {
+node* minheap_insert(minheap *aa, node bb) {
 	
 	if(aa->size == aa->capacity){
 		printf("Heap is at capacity (%d). Unable to insert element.\n", aa->capacity);
-		return;
+		return NULL;
 	}
 	
 	if(aa == NULL){
 		printf("Pointer to heap is NULL.\n");
-		return;
+		return NULL;
 	}
 	
 	int i = aa->size+1;
@@ -52,6 +60,8 @@ void minheap_insert(minheap *aa, node bb) {
 
 	// increment heap size
 	aa->size++;
+
+	return &a[i];
 }
 
 minheap* create_minheap(int capacity, int *freq, char *data){
@@ -71,7 +81,7 @@ minheap* create_minheap(int capacity, int *freq, char *data){
 
 	// initialize nodes
 	for (int i = 1; i <= capacity; i++){
-		node h = (node){freq[i], data[i], NULL, NULL, NULL};	
+		node h = (node){freq[i], data[i], (codeword){0,0,{}}, NULL, NULL, NULL};	
 		minheap_insert(aa, h);
 	}
 
@@ -164,9 +174,13 @@ huffmanTree* create_huffman_tree(minheap* heap){
 		tree->nnodes += 2;	
 
 		// sum of the two nodes
-		node c = (node){tree->nodes[2*i]->freq + tree->nodes[2*i+1]->freq, '$', NULL, 
+		node c = (node){tree->nodes[2*i]->freq + tree->nodes[2*i+1]->freq, (char)0, (codeword){0,0,{}}, NULL, 
 							tree->nodes[2*i], tree->nodes[2*i+1]};
-		minheap_insert(heap, c);
+
+		// add node to heap and give child nodes a way to access parent 
+		tree->nodes[2*i]->parent = minheap_insert(heap, c);
+		tree->nodes[2*i+1]->parent = tree->nodes[2*i]->parent;
+
 		i++;
 	}
 	// root node
@@ -176,7 +190,7 @@ huffmanTree* create_huffman_tree(minheap* heap){
 	return tree;
 }
 
-destroy_huffman_tree(huffmanTree *tree) {
+void destroy_huffman_tree(huffmanTree *tree) {
 
 	for (int i = 0; i < tree->nnodes; i++){
 		free(tree->nodes[i]);
@@ -184,6 +198,36 @@ destroy_huffman_tree(huffmanTree *tree) {
 
 	if(tree != NULL)
 		free(tree);
+}
+
+void traverse(node* root){
+
+	if(root == NULL){
+		return;
+	}
+
+	printf("left: %p\n", root->left);
+	if(root->left != NULL){
+		root->left->cw.bytes[root->left->cw.nbits] = '0';
+		root->left->cw.nbits = root->cw.nbits;
+		root->left->cw.nbits++;
+		traverse(root->left);
+	}
+
+	printf("right: %p\n", root->right);
+	if(root->right != NULL){
+		root->right->cw.bytes[root->right->cw.nbits] = '1';
+		root->right->cw.nbits = root->cw.nbits;
+		root->right->cw.nbits++;
+		traverse(root->right);
+	}
+
+}
+
+void codeword_generate(node* root) {	
+
+	traverse(root);
+
 }
 
 int main(int argc, char** argv){
@@ -208,16 +252,24 @@ int main(int argc, char** argv){
 	// create a huffman tree
 	huffmanTree *tree = create_huffman_tree(heap);
 
+	codeword_generate(tree->nodes[tree->nnodes-1]);
+
 	// print the huffman tree node memory address relationships
 	printf("------- Huffman Tree nodes -------\n");
-	for (int i = 0; i <= 10; i++){
-		printf("addr: %x freq:%d char:%c left:%x right:%x\n", tree->nodes[i], tree->nodes[i]->freq, 
+	for (int i = 0; i < tree->nnodes; i++){
+		printf("addr:%p freq:%d char:%c left:%p right:%p\n", tree->nodes[i], tree->nodes[i]->freq, 
 			tree->nodes[i]->data, tree->nodes[i]->left, tree->nodes[i]->right);
+		printf("codeword:");
+		for(int j = 0; j < tree->nodes[i]->cw.nbits; j++){
+			printf("%c", tree->nodes[i]->cw.bytes[j]);
+		}
+		printf("\n");
 	} 
+
 
 	// free the memory
 	destroy_huffman_tree(tree);
-	free(heap);
+	destroy_minheap(heap);
 
 	return 0;
 }
